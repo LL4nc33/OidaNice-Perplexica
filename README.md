@@ -17,10 +17,6 @@
 - [Perplexica's API verwenden](#perplexicas-api-verwenden)
 - [Perplexica im Netzwerk verfügbar machen](#perplexica-im-netzwerk-verfügbar-machen)
 - [Kommende Features](#kommende-features)
-- [Unterstütze uns](#unterstütze-uns)
-  - [Spenden](#spenden)
-- [Contribution](#contribution)
-- [Hilfe und Support](#hilfe-und-support)
 
 ## Überblick
 
@@ -180,24 +176,8 @@ Perplexica läuft auf Next.js und behandelt alle API Requests. Es funktioniert s
 - [x] Enhanced Provider Support (Ollama Turbo, Custom SearxNG)
 - [ ] Copilot Mode finalisieren
 
-## Unterstütze uns
+---
 
-Wenn du Perplexica nützlich findest, erwäge uns einen Star auf GitHub zu geben. Das hilft mehr Leuten, Perplexica zu entdecken und unterstützt die Entwicklung neuer Features. Deine Unterstützung wird sehr geschätzt.
+**Original Projekt**: Für Support, Contributions und weitere Informationen zum ursprünglichen Perplexica Projekt besuche das [Original Repository von ItzCrazyKns](https://github.com/ItzCrazyKns/Perplexica).
 
-### Spenden
-
-Wir akzeptieren auch Spenden, um unser Projekt zu erhalten. Wenn du beitragen möchtest, kannst du die folgenden Optionen zum Spenden verwenden. Danke für deine Unterstützung!
-
-| Ethereum                                              |
-| ----------------------------------------------------- |
-| Address: `0xB025a84b2F269570Eb8D4b05DEdaA41D8525B6DD` |
-
-## Contribution
-
-Für Contributions zu dieser deutschen Version verwende bitte dieses Repository. Für das Original-Projekt kannst du die [CONTRIBUTING.md](https://github.com/ItzCrazyKns/Perplexica/blob/master/CONTRIBUTING.md) des ursprünglichen Repositories einsehen.
-
-## Hilfe und Support
-
-Wenn du Fragen oder Feedback hast, zögere nicht, uns zu kontaktieren. Du kannst ein Issue auf GitHub erstellen oder unserem Discord Server beitreten. Dort kannst du dich mit anderen Usern vernetzen, deine Experiences und Reviews teilen und personalisiertere Hilfe erhalten. [Klicke hier](https://discord.gg/EFwsmQDgAu), um dem Discord Server beizutreten. Um Angelegenheiten außerhalb des regulären Supports zu besprechen, kontaktiere mich gerne auf Discord unter `itzcrazykns`.
-
-Danke, dass du Perplexica erkundest, die AI-powered Search Engine, die darauf ausgelegt ist, deine Search Experience zu verbessern. Wir arbeiten ständig daran, Perplexica zu verbessern und seine Capabilities zu erweitern. Wir schätzen dein Feedback und deine Contributions, die uns helfen, Perplexica noch besser zu machen. Vergiss nicht, für Updates und neue Features vorbeizuschauen!
+Diese deutsche Version erweitert das Original um Lokalisierung und Performance-Features.

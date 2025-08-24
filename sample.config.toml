@@ -39,5 +39,9 @@ API_URL = "" # LM Studio API URL - http://host.docker.internal:1234
 [MODELS.ELEVENLABS]
 API_KEY = "" # ElevenLabs API Key for high-quality Text-to-Speech
 
+[MODELS.VLLM]
+API_URL = "" # vLLM API URL - http://localhost:8000
+API_KEY = "" # Optional: API Key for vLLM (if authentication is enabled)
+
 [API_ENDPOINTS]
 SEARXNG = "" # SearxNG API URL - http://localhost:32768

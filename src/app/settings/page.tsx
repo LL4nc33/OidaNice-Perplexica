@@ -44,6 +44,8 @@ interface SettingsType {
   ollama2ApiUrl: string;
   ollama2ApiKey: string;
   lmStudioApiUrl: string;
+  vllmApiUrl: string;
+  vllmApiKey: string;
   elevenLabsApiKey: string;
   deepseekApiKey: string;
   aimlApiKey: string;

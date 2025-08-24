@@ -23,6 +23,8 @@ dist/
 # Config files
 config.toml
 "config - Kopie.toml"
+*.toml
+!sample.config.toml
 
 # Log files
 logs/

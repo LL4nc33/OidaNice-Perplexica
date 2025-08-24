@@ -54,6 +54,10 @@ interface Config {
     ELEVENLABS: {
       API_KEY: string;
     };
+    VLLM: {
+      API_URL: string;
+      API_KEY: string;
+    };
   };
   API_ENDPOINTS: {
     SEARXNG: string;
@@ -136,6 +140,10 @@ export const getLMStudioApiEndpoint = () =>
   loadConfig().MODELS.LM_STUDIO.API_URL;
 
 export const getElevenLabsApiKey = () => loadConfig().MODELS.ELEVENLABS.API_KEY;
+
+export const getVllmApiEndpoint = () => loadConfig().MODELS.VLLM.API_URL;
+
+export const getVllmApiKey = () => loadConfig().MODELS.VLLM.API_KEY;
 
 const mergeConfigs = (current: any, update: any): any => {
   if (update === null || update === undefined) {
