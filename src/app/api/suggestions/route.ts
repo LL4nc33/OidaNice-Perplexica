@@ -17,6 +17,7 @@ interface ChatModel {
 interface SuggestionsGenerationBody {
   chatHistory: any[];
   chatModel?: ChatModel;
+  language?: 'en' | 'de';
 }
 
 export const POST = async (req: Request) => {
@@ -66,6 +67,7 @@ export const POST = async (req: Request) => {
     const suggestions = await generateSuggestions(
       {
         chat_history: chatHistory,
+        language: body.language || 'en',
       },
       llm,
     );

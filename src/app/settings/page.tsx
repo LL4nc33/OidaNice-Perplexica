@@ -8,6 +8,25 @@ import ThemeSwitcher from '@/components/theme/Switcher';
 import { ImagesIcon, VideoIcon } from 'lucide-react';
 import Link from 'next/link';
 import { PROVIDER_METADATA } from '@/lib/providers';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
+import {
+  elevenLabsModels,
+  getRecommendedModel,
+} from '@/lib/config/elevenLabsModels';
+import { shouldMaskInput, maskInputValue } from '@/lib/utils/maskSensitiveData';
+
+interface ElevenLabsVoice {
+  voice_id: string;
+  name: string;
+  category?: string;
+  description?: string;
+  labels?: {
+    accent?: string;
+    gender?: string;
+    age?: string;
+    use_case?: string;
+  };
+}
 
 interface SettingsType {
   chatModelProviders: {
@@ -22,30 +41,72 @@ interface SettingsType {
   geminiApiKey: string;
   ollamaApiUrl: string;
   ollamaApiKey: string;
+  ollama2ApiUrl: string;
+  ollama2ApiKey: string;
   lmStudioApiUrl: string;
+  elevenLabsApiKey: string;
   deepseekApiKey: string;
   aimlApiKey: string;
   customOpenaiApiKey: string;
   customOpenaiApiUrl: string;
   customOpenaiModelName: string;
+  searxngApiUrl: string;
 }
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   isSaving?: boolean;
   onSave?: (value: string) => void;
+  fieldName?: string;
 }
 
-const Input = ({ className, isSaving, onSave, ...restProps }: InputProps) => {
+const Input = ({
+  className,
+  isSaving,
+  onSave,
+  fieldName,
+  ...restProps
+}: InputProps) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const [internalValue, setInternalValue] = useState(
+    restProps.value?.toString() || '',
+  );
+
+  const shouldMask =
+    fieldName && shouldMaskInput(restProps.type || 'text', fieldName);
+
+  // Update internal value when props change (for initial load)
+  useEffect(() => {
+    setInternalValue(restProps.value?.toString() || '');
+  }, [restProps.value]);
+
+  const displayValue =
+    shouldMask && !isFocused && internalValue
+      ? maskInputValue(internalValue, fieldName || '')
+      : internalValue;
+
   return (
     <div className="relative">
       <input
         {...restProps}
+        value={displayValue}
         className={cn(
           'bg-light-secondary dark:bg-dark-secondary w-full px-3 py-2 flex items-center overflow-hidden border border-light-200 dark:border-dark-200 dark:text-white rounded-lg text-sm',
           isSaving && 'pr-10',
           className,
         )}
-        onBlur={(e) => onSave?.(e.target.value)}
+        onChange={(e) => {
+          setInternalValue(e.target.value);
+          restProps.onChange?.(e);
+        }}
+        onFocus={(e) => {
+          setIsFocused(true);
+          restProps.onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setIsFocused(false);
+          onSave?.(e.target.value);
+          restProps.onBlur?.(e);
+        }}
       />
       {isSaving && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -62,18 +123,20 @@ const Input = ({ className, isSaving, onSave, ...restProps }: InputProps) => {
 interface TextareaProps extends React.InputHTMLAttributes<HTMLTextAreaElement> {
   isSaving?: boolean;
   onSave?: (value: string) => void;
+  t?: (key: string) => string;
 }
 
 const Textarea = ({
   className,
   isSaving,
   onSave,
+  t,
   ...restProps
 }: TextareaProps) => {
   return (
     <div className="relative">
       <textarea
-        placeholder="Any special instructions for the LLM"
+        placeholder={t?.('settings.systemInstructionsPlaceholder')}
         className="placeholder:text-sm text-sm w-full flex items-center justify-between p-3 bg-light-secondary dark:bg-dark-secondary rounded-lg hover:bg-light-200 dark:hover:bg-dark-200 transition-colors"
         rows={4}
         onBlur={(e) => onSave?.(e.target.value)}
@@ -129,6 +192,7 @@ const SettingsSection = ({
 );
 
 const Page = () => {
+  const { language, setLanguage, t } = useLanguage();
   const [config, setConfig] = useState<SettingsType | null>(null);
   const [chatModels, setChatModels] = useState<Record<string, any>>({});
   const [embeddingModels, setEmbeddingModels] = useState<Record<string, any>>(
@@ -152,6 +216,19 @@ const Page = () => {
   const [measureUnit, setMeasureUnit] = useState<'Imperial' | 'Metric'>(
     'Metric',
   );
+  const [ttsProvider, setTtsProvider] = useState<'browser' | 'elevenlabs'>(
+    'browser',
+  );
+  const [elevenLabsVoice, setElevenLabsVoice] = useState<string>(
+    'pNInz6obpgDQGcFmaJgB',
+  );
+  const [elevenLabsModel, setElevenLabsModel] = useState<string>(
+    'eleven_multilingual_v2',
+  );
+  const [elevenLabsVoices, setElevenLabsVoices] = useState<ElevenLabsVoice[]>(
+    [],
+  );
+  const [voicesLoading, setVoicesLoading] = useState(false);
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -218,11 +295,52 @@ const Page = () => {
         localStorage.getItem('measureUnit')! as 'Imperial' | 'Metric',
       );
 
+      setTtsProvider(
+        (localStorage.getItem('ttsProvider') as 'browser' | 'elevenlabs') ||
+          'browser',
+      );
+
+      setElevenLabsVoice(
+        localStorage.getItem('elevenLabsVoice') || 'pNInz6obpgDQGcFmaJgB',
+      );
+
+      setElevenLabsModel(
+        localStorage.getItem('elevenLabsModel') || getRecommendedModel('de'),
+      );
+
       setIsLoading(false);
     };
 
     fetchConfig();
   }, []);
+
+  // Fetch ElevenLabs voices when provider changes to elevenlabs
+  useEffect(() => {
+    const fetchVoices = async () => {
+      if (ttsProvider === 'elevenlabs' && elevenLabsVoices.length === 0) {
+        setVoicesLoading(true);
+        try {
+          const res = await fetch('/api/tts/voices');
+          const data = await res.json();
+          setElevenLabsVoices(data.voices || []);
+        } catch (error) {
+          console.error('Failed to fetch ElevenLabs voices:', error);
+          // Set default voices as fallback
+          setElevenLabsVoices([
+            {
+              voice_id: 'pNInz6obpgDQGcFmaJgB',
+              name: 'Adam',
+              description: 'Deep male voice',
+            },
+          ]);
+        } finally {
+          setVoicesLoading(false);
+        }
+      }
+    };
+
+    fetchVoices();
+  }, [ttsProvider, elevenLabsVoices.length]);
 
   const saveConfig = async (key: string, value: any) => {
     setSavingStates((prev) => ({ ...prev, [key]: true }));
@@ -398,7 +516,7 @@ const Page = () => {
           </Link>
           <div className="flex flex-row space-x-0.5 items-center">
             <SettingsIcon size={23} />
-            <h1 className="text-3xl font-medium p-2">Settings</h1>
+            <h1 className="text-3xl font-medium p-2">{t('settings.title')}</h1>
           </div>
         </div>
         <hr className="border-t border-[#2B2C2C] my-4 w-full" />
@@ -426,16 +544,29 @@ const Page = () => {
       ) : (
         config && (
           <div className="flex flex-col space-y-6 pb-28 lg:pb-8">
-            <SettingsSection title="Preferences">
+            <SettingsSection title={t('settings.preferences')}>
               <div className="flex flex-col space-y-1">
                 <p className="text-black/70 dark:text-white/70 text-sm">
-                  Theme
+                  {t('settings.language')}
+                </p>
+                <Select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as 'en' | 'de')}
+                  options={[
+                    { label: 'English', value: 'en' },
+                    { label: 'Deutsch', value: 'de' },
+                  ]}
+                />
+              </div>
+              <div className="flex flex-col space-y-1">
+                <p className="text-black/70 dark:text-white/70 text-sm">
+                  {t('settings.theme')}
                 </p>
                 <ThemeSwitcher />
               </div>
               <div className="flex flex-col space-y-1">
                 <p className="text-black/70 dark:text-white/70 text-sm">
-                  Measurement Units
+                  {t('settings.measurementUnits')}
                 </p>
                 <Select
                   value={measureUnit ?? undefined}
@@ -445,19 +576,94 @@ const Page = () => {
                   }}
                   options={[
                     {
-                      label: 'Metric',
+                      label: t('settings.metric'),
                       value: 'Metric',
                     },
                     {
-                      label: 'Imperial',
+                      label: t('settings.imperial'),
                       value: 'Imperial',
                     },
                   ]}
                 />
               </div>
+              <div className="flex flex-col space-y-1">
+                <p className="text-black/70 dark:text-white/70 text-sm">
+                  {t('settings.ttsProvider')}
+                </p>
+                <Select
+                  value={ttsProvider}
+                  onChange={(e) => {
+                    const provider = e.target.value as 'browser' | 'elevenlabs';
+                    setTtsProvider(provider);
+                    localStorage.setItem('ttsProvider', provider);
+                  }}
+                  options={[
+                    {
+                      label: t('settings.ttsProviderBrowser'),
+                      value: 'browser',
+                    },
+                    {
+                      label: t('settings.ttsProviderElevenLabs'),
+                      value: 'elevenlabs',
+                    },
+                  ]}
+                />
+              </div>
+              {ttsProvider === 'elevenlabs' && (
+                <div className="flex flex-col space-y-1">
+                  <p className="text-black/70 dark:text-white/70 text-sm">
+                    {t('settings.elevenLabsVoice')}
+                  </p>
+                  <p className="text-black/50 dark:text-white/50 text-xs">
+                    {t('settings.elevenLabsVoiceDesc')}
+                  </p>
+                  {voicesLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="animate-spin h-6 w-6 text-black/70 dark:text-white/70" />
+                    </div>
+                  ) : (
+                    <Select
+                      value={elevenLabsVoice}
+                      onChange={(e) => {
+                        setElevenLabsVoice(e.target.value);
+                        localStorage.setItem('elevenLabsVoice', e.target.value);
+                      }}
+                      options={elevenLabsVoices.map((voice) => ({
+                        label: `${voice.name}${voice.description ? ` - ${voice.description}` : ''}${
+                          voice.labels?.accent
+                            ? ` (${voice.labels.accent})`
+                            : ''
+                        }`,
+                        value: voice.voice_id,
+                      }))}
+                    />
+                  )}
+                </div>
+              )}
+              {ttsProvider === 'elevenlabs' && (
+                <div className="flex flex-col space-y-1">
+                  <p className="text-black/70 dark:text-white/70 text-sm">
+                    {t('settings.elevenLabsModel')}
+                  </p>
+                  <p className="text-black/50 dark:text-white/50 text-xs">
+                    {t('settings.elevenLabsModelDesc')}
+                  </p>
+                  <Select
+                    value={elevenLabsModel}
+                    onChange={(e) => {
+                      setElevenLabsModel(e.target.value);
+                      localStorage.setItem('elevenLabsModel', e.target.value);
+                    }}
+                    options={elevenLabsModels.map((model) => ({
+                      label: `${model.name}${model.recommended ? ' ⭐' : ''} - ${model.description}`,
+                      value: model.id,
+                    }))}
+                  />
+                </div>
+              )}
             </SettingsSection>
 
-            <SettingsSection title="Automatic Search">
+            <SettingsSection title={t('settings.automaticSearch')}>
               <div className="flex flex-col space-y-4">
                 <div className="flex items-center justify-between p-3 bg-light-secondary dark:bg-dark-secondary rounded-lg hover:bg-light-200 dark:hover:bg-dark-200 transition-colors">
                   <div className="flex items-center space-x-3">
@@ -469,11 +675,10 @@ const Page = () => {
                     </div>
                     <div>
                       <p className="text-sm text-black/90 dark:text-white/90 font-medium">
-                        Automatic Image Search
+                        {t('settings.automaticImageSearch')}
                       </p>
                       <p className="text-xs text-black/60 dark:text-white/60 mt-0.5">
-                        Automatically search for relevant images in chat
-                        responses
+                        {t('settings.automaticImageSearchDesc')}
                       </p>
                     </div>
                   </div>
@@ -511,11 +716,10 @@ const Page = () => {
                     </div>
                     <div>
                       <p className="text-sm text-black/90 dark:text-white/90 font-medium">
-                        Automatic Video Search
+                        {t('settings.automaticVideoSearch')}
                       </p>
                       <p className="text-xs text-black/60 dark:text-white/60 mt-0.5">
-                        Automatically search for relevant videos in chat
-                        responses
+                        {t('settings.automaticVideoSearchDesc')}
                       </p>
                     </div>
                   </div>
@@ -545,11 +749,39 @@ const Page = () => {
               </div>
             </SettingsSection>
 
-            <SettingsSection title="System Instructions">
+            <SettingsSection title={t('settings.searchSettings')}>
+              <div className="flex flex-col space-y-4">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-black/70 dark:text-white/70 text-sm">
+                    {t('settings.searxngUrl')}
+                  </p>
+                  <p className="text-black/50 dark:text-white/50 text-xs">
+                    {t('settings.searxngUrlDesc')}
+                  </p>
+                  <Input
+                    type="text"
+                    placeholder={t('settings.searxngUrlPlaceholder')}
+                    value={config.searxngApiUrl || ''}
+                    fieldName="searxngApiUrl"
+                    isSaving={savingStates['searxngApiUrl']}
+                    onChange={(e) => {
+                      setConfig((prev) => ({
+                        ...prev!,
+                        searxngApiUrl: e.target.value,
+                      }));
+                    }}
+                    onSave={(value) => saveConfig('searxngApiUrl', value)}
+                  />
+                </div>
+              </div>
+            </SettingsSection>
+
+            <SettingsSection title={t('settings.systemInstructions')}>
               <div className="flex flex-col space-y-4">
                 <Textarea
                   value={systemInstructions ?? undefined}
                   isSaving={savingStates['systemInstructions']}
+                  t={t}
                   onChange={(e) => {
                     setSystemInstructions(e.target.value);
                   }}
@@ -558,12 +790,12 @@ const Page = () => {
               </div>
             </SettingsSection>
 
-            <SettingsSection title="Model Settings">
+            <SettingsSection title={t('settings.modelSettings')}>
               {config.chatModelProviders && (
                 <div className="flex flex-col space-y-4">
                   <div className="flex flex-col space-y-1">
                     <p className="text-black/70 dark:text-white/70 text-sm">
-                      Chat Model Provider
+                      {t('settings.chatModelProvider')}
                     </p>
                     <Select
                       value={selectedChatModelProvider ?? undefined}
@@ -594,7 +826,7 @@ const Page = () => {
                     selectedChatModelProvider != 'custom_openai' && (
                       <div className="flex flex-col space-y-1">
                         <p className="text-black/70 dark:text-white/70 text-sm">
-                          Chat Model
+                          {t('settings.chatModel')}
                         </p>
                         <Select
                           value={selectedChatModel ?? undefined}
@@ -617,15 +849,14 @@ const Page = () => {
                                 : [
                                     {
                                       value: '',
-                                      label: 'No models available',
+                                      label: t('settings.noModelsAvailable'),
                                       disabled: true,
                                     },
                                   ]
                               : [
                                   {
                                     value: '',
-                                    label:
-                                      'Invalid provider, please check backend logs',
+                                    label: t('settings.invalidProvider'),
                                     disabled: true,
                                   },
                                 ];
@@ -641,12 +872,13 @@ const Page = () => {
                   <div className="flex flex-col space-y-4">
                     <div className="flex flex-col space-y-1">
                       <p className="text-black/70 dark:text-white/70 text-sm">
-                        Model Name
+                        {t('settings.modelName')}
                       </p>
                       <Input
                         type="text"
-                        placeholder="Model name"
+                        placeholder={t('settings.modelNamePlaceholder')}
                         value={config.customOpenaiModelName}
+                        fieldName="customOpenaiModelName"
                         isSaving={savingStates['customOpenaiModelName']}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           setConfig((prev) => ({
@@ -661,12 +893,13 @@ const Page = () => {
                     </div>
                     <div className="flex flex-col space-y-1">
                       <p className="text-black/70 dark:text-white/70 text-sm">
-                        Custom OpenAI API Key
+                        {t('settings.customOpenAIApiKey')}
                       </p>
                       <Input
-                        type="text"
-                        placeholder="Custom OpenAI API Key"
+                        type="password"
+                        placeholder={t('settings.customOpenAIApiKey')}
                         value={config.customOpenaiApiKey}
+                        fieldName="customOpenaiApiKey"
                         isSaving={savingStates['customOpenaiApiKey']}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           setConfig((prev) => ({
@@ -681,12 +914,13 @@ const Page = () => {
                     </div>
                     <div className="flex flex-col space-y-1">
                       <p className="text-black/70 dark:text-white/70 text-sm">
-                        Custom OpenAI Base URL
+                        {t('settings.customOpenAIBaseURL')}
                       </p>
                       <Input
                         type="text"
-                        placeholder="Custom OpenAI Base URL"
+                        placeholder={t('settings.customOpenAIBaseURL')}
                         value={config.customOpenaiApiUrl}
+                        fieldName="customOpenaiApiUrl"
                         isSaving={savingStates['customOpenaiApiUrl']}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           setConfig((prev) => ({
@@ -706,7 +940,7 @@ const Page = () => {
                 <div className="flex flex-col space-y-4 mt-4 pt-4 border-t border-light-200 dark:border-dark-200">
                   <div className="flex flex-col space-y-1">
                     <p className="text-black/70 dark:text-white/70 text-sm">
-                      Embedding Model Provider
+                      {t('settings.embeddingModelProvider')}
                     </p>
                     <Select
                       value={selectedEmbeddingModelProvider ?? undefined}
@@ -736,7 +970,7 @@ const Page = () => {
                   {selectedEmbeddingModelProvider && (
                     <div className="flex flex-col space-y-1">
                       <p className="text-black/70 dark:text-white/70 text-sm">
-                        Embedding Model
+                        {t('settings.embeddingModel')}
                       </p>
                       <Select
                         value={selectedEmbeddingModel ?? undefined}
@@ -759,15 +993,14 @@ const Page = () => {
                               : [
                                   {
                                     value: '',
-                                    label: 'No models available',
+                                    label: t('settings.noModelsAvailable'),
                                     disabled: true,
                                   },
                                 ]
                             : [
                                 {
                                   value: '',
-                                  label:
-                                    'Invalid provider, please check backend logs',
+                                  label: t('settings.invalidProvider'),
                                   disabled: true,
                                 },
                               ];
@@ -779,16 +1012,17 @@ const Page = () => {
               )}
             </SettingsSection>
 
-            <SettingsSection title="API Keys">
+            <SettingsSection title={t('settings.apiKeys')}>
               <div className="flex flex-col space-y-4">
                 <div className="flex flex-col space-y-1">
                   <p className="text-black/70 dark:text-white/70 text-sm">
-                    OpenAI API Key
+                    {t('settings.openAIApiKey')}
                   </p>
                   <Input
-                    type="text"
-                    placeholder="OpenAI API Key"
+                    type="password"
+                    placeholder={t('settings.openAIApiKey')}
                     value={config.openaiApiKey}
+                    fieldName="openaiApiKey"
                     isSaving={savingStates['openaiApiKey']}
                     onChange={(e) => {
                       setConfig((prev) => ({
@@ -802,12 +1036,13 @@ const Page = () => {
 
                 <div className="flex flex-col space-y-1">
                   <p className="text-black/70 dark:text-white/70 text-sm">
-                    Ollama API URL
+                    {t('settings.ollamaApiUrl')}
                   </p>
                   <Input
                     type="text"
-                    placeholder="Ollama API URL"
+                    placeholder={t('settings.ollamaApiUrl')}
                     value={config.ollamaApiUrl}
+                    fieldName="ollamaApiUrl"
                     isSaving={savingStates['ollamaApiUrl']}
                     onChange={(e) => {
                       setConfig((prev) => ({
@@ -821,12 +1056,13 @@ const Page = () => {
 
                 <div className="flex flex-col space-y-1">
                   <p className="text-black/70 dark:text-white/70 text-sm">
-                    Ollama API Key (Can be left blank)
+                    {t('settings.ollamaApiKey')}
                   </p>
                   <Input
-                    type="text"
-                    placeholder="Ollama API Key"
+                    type="password"
+                    placeholder={t('settings.ollamaApiKeyPlaceholder')}
                     value={config.ollamaApiKey}
+                    fieldName="ollamaApiKey"
                     isSaving={savingStates['ollamaApiKey']}
                     onChange={(e) => {
                       setConfig((prev) => ({
@@ -840,12 +1076,53 @@ const Page = () => {
 
                 <div className="flex flex-col space-y-1">
                   <p className="text-black/70 dark:text-white/70 text-sm">
-                    GROQ API Key
+                    {t('settings.ollama2ApiUrl')}
                   </p>
                   <Input
                     type="text"
-                    placeholder="GROQ API Key"
+                    placeholder="https://ollama.com"
+                    value={config.ollama2ApiUrl || 'https://ollama.com'}
+                    fieldName="ollama2ApiUrl"
+                    isSaving={savingStates['ollama2ApiUrl']}
+                    onChange={(e) => {
+                      setConfig((prev) => ({
+                        ...prev!,
+                        ollama2ApiUrl: e.target.value,
+                      }));
+                    }}
+                    onSave={(value) => saveConfig('ollama2ApiUrl', value)}
+                  />
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <p className="text-black/70 dark:text-white/70 text-sm">
+                    {t('settings.ollama2ApiKey')}
+                  </p>
+                  <Input
+                    type="password"
+                    placeholder={t('settings.ollama2ApiKeyPlaceholder')}
+                    value={config.ollama2ApiKey}
+                    fieldName="ollama2ApiKey"
+                    isSaving={savingStates['ollama2ApiKey']}
+                    onChange={(e) => {
+                      setConfig((prev) => ({
+                        ...prev!,
+                        ollama2ApiKey: e.target.value,
+                      }));
+                    }}
+                    onSave={(value) => saveConfig('ollama2ApiKey', value)}
+                  />
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <p className="text-black/70 dark:text-white/70 text-sm">
+                    {t('settings.groqApiKey')}
+                  </p>
+                  <Input
+                    type="password"
+                    placeholder={t('settings.groqApiKey')}
                     value={config.groqApiKey}
+                    fieldName="groqApiKey"
                     isSaving={savingStates['groqApiKey']}
                     onChange={(e) => {
                       setConfig((prev) => ({
@@ -859,12 +1136,13 @@ const Page = () => {
 
                 <div className="flex flex-col space-y-1">
                   <p className="text-black/70 dark:text-white/70 text-sm">
-                    Anthropic API Key
+                    {t('settings.anthropicApiKey')}
                   </p>
                   <Input
-                    type="text"
-                    placeholder="Anthropic API key"
+                    type="password"
+                    placeholder={t('settings.anthropicApiKey')}
                     value={config.anthropicApiKey}
+                    fieldName="anthropicApiKey"
                     isSaving={savingStates['anthropicApiKey']}
                     onChange={(e) => {
                       setConfig((prev) => ({
@@ -878,12 +1156,13 @@ const Page = () => {
 
                 <div className="flex flex-col space-y-1">
                   <p className="text-black/70 dark:text-white/70 text-sm">
-                    Gemini API Key
+                    {t('settings.geminiApiKey')}
                   </p>
                   <Input
-                    type="text"
-                    placeholder="Gemini API key"
+                    type="password"
+                    placeholder={t('settings.geminiApiKey')}
                     value={config.geminiApiKey}
+                    fieldName="geminiApiKey"
                     isSaving={savingStates['geminiApiKey']}
                     onChange={(e) => {
                       setConfig((prev) => ({
@@ -897,12 +1176,13 @@ const Page = () => {
 
                 <div className="flex flex-col space-y-1">
                   <p className="text-black/70 dark:text-white/70 text-sm">
-                    Deepseek API Key
+                    {t('settings.deepseekApiKey')}
                   </p>
                   <Input
-                    type="text"
-                    placeholder="Deepseek API Key"
+                    type="password"
+                    placeholder={t('settings.deepseekApiKey')}
                     value={config.deepseekApiKey}
+                    fieldName="deepseekApiKey"
                     isSaving={savingStates['deepseekApiKey']}
                     onChange={(e) => {
                       setConfig((prev) => ({
@@ -916,12 +1196,13 @@ const Page = () => {
 
                 <div className="flex flex-col space-y-1">
                   <p className="text-black/70 dark:text-white/70 text-sm">
-                    AI/ML API Key
+                    {t('settings.aimlApiKey')}
                   </p>
                   <Input
-                    type="text"
-                    placeholder="AI/ML API Key"
+                    type="password"
+                    placeholder={t('settings.aimlApiKey')}
                     value={config.aimlApiKey}
+                    fieldName="aimlApiKey"
                     isSaving={savingStates['aimlApiKey']}
                     onChange={(e) => {
                       setConfig((prev) => ({
@@ -935,12 +1216,13 @@ const Page = () => {
 
                 <div className="flex flex-col space-y-1">
                   <p className="text-black/70 dark:text-white/70 text-sm">
-                    LM Studio API URL
+                    {t('settings.lmStudioApiUrl')}
                   </p>
                   <Input
                     type="text"
-                    placeholder="LM Studio API URL"
+                    placeholder={t('settings.lmStudioApiUrl')}
                     value={config.lmStudioApiUrl}
+                    fieldName="lmStudioApiUrl"
                     isSaving={savingStates['lmStudioApiUrl']}
                     onChange={(e) => {
                       setConfig((prev) => ({
@@ -949,6 +1231,30 @@ const Page = () => {
                       }));
                     }}
                     onSave={(value) => saveConfig('lmStudioApiUrl', value)}
+                  />
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <p className="text-black/70 dark:text-white/70 text-sm">
+                    {t('settings.elevenLabsApiKey')}
+                  </p>
+                  <Input
+                    type="password"
+                    placeholder={t('settings.elevenLabsApiKey')}
+                    value={config.elevenLabsApiKey}
+                    fieldName="elevenLabsApiKey"
+                    isSaving={savingStates['elevenLabsApiKey']}
+                    onChange={(e) => {
+                      setConfig((prev) => ({
+                        ...prev!,
+                        elevenLabsApiKey: e.target.value,
+                      }));
+                    }}
+                    onSave={(value) => {
+                      saveConfig('elevenLabsApiKey', value);
+                      // Reset voices to force reload with new API key
+                      setElevenLabsVoices([]);
+                    }}
                   />
                 </div>
               </div>

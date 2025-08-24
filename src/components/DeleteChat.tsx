@@ -11,6 +11,7 @@ import {
 import { Fragment, useState } from 'react';
 import { toast } from 'sonner';
 import { Chat } from '@/app/library/page';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 const DeleteChat = ({
   chatId,
@@ -23,6 +24,7 @@ const DeleteChat = ({
   setChats: (chats: Chat[]) => void;
   redirect?: boolean;
 }) => {
+  const { t } = useLanguage();
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -89,10 +91,10 @@ const DeleteChat = ({
               >
                 <DialogPanel className="w-full max-w-md transform rounded-2xl bg-light-secondary dark:bg-dark-secondary border border-light-200 dark:border-dark-200 p-6 text-left align-middle shadow-xl transition-all">
                   <DialogTitle className="text-lg font-medium leading-6 dark:text-white">
-                    Delete Confirmation
+                    {t('library.deleteChat')}
                   </DialogTitle>
                   <Description className="text-sm dark:text-white/70 text-black/70">
-                    Are you sure you want to delete this chat?
+                    {t('library.confirmDelete')}
                   </Description>
                   <div className="flex flex-row items-end justify-end space-x-4 mt-6">
                     <button
@@ -103,13 +105,13 @@ const DeleteChat = ({
                       }}
                       className="text-black/50 dark:text-white/50 text-sm hover:text-black/70 hover:dark:text-white/70 transition duration-200"
                     >
-                      Cancel
+                      {t('library.cancel')}
                     </button>
                     <button
                       onClick={handleDelete}
                       className="text-red-400 text-sm hover:text-red-500 transition duration200"
                     >
-                      Delete
+                      {t('library.delete')}
                     </button>
                   </div>
                 </DialogPanel>

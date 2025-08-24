@@ -8,6 +8,7 @@ import { Settings } from 'lucide-react';
 import Link from 'next/link';
 import NextError from 'next/error';
 import { useChat } from '@/lib/hooks/useChat';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export type Message = {
   messageId: string;
@@ -27,6 +28,7 @@ export interface File {
 
 const ChatWindow = () => {
   const { hasError, isReady, notFound, messages } = useChat();
+  const { t } = useLanguage();
   if (hasError) {
     return (
       <div className="relative">
@@ -37,7 +39,7 @@ const ChatWindow = () => {
         </div>
         <div className="flex flex-col items-center justify-center min-h-screen">
           <p className="dark:text-white/70 text-black/70 text-sm">
-            Failed to connect to the server. Please try again later.
+            {t('errors.failedToConnect')}
           </p>
         </div>
       </div>

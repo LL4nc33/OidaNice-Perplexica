@@ -10,8 +10,12 @@ import {
   getDeepseekApiKey,
   getAimlApiKey,
   getLMStudioApiEndpoint,
+  getElevenLabsApiKey,
   updateConfig,
   getOllamaApiKey,
+  getOllama2ApiEndpoint,
+  getOllama2ApiKey,
+  getSearxngApiEndpoint,
 } from '@/lib/config';
 import {
   getAvailableChatModelProviders,
@@ -55,7 +59,10 @@ export const GET = async (req: Request) => {
     config['openaiApiKey'] = getOpenaiApiKey();
     config['ollamaApiUrl'] = getOllamaApiEndpoint();
     config['ollamaApiKey'] = getOllamaApiKey();
+    config['ollama2ApiUrl'] = getOllama2ApiEndpoint();
+    config['ollama2ApiKey'] = getOllama2ApiKey();
     config['lmStudioApiUrl'] = getLMStudioApiEndpoint();
+    config['elevenLabsApiKey'] = getElevenLabsApiKey();
     config['anthropicApiKey'] = getAnthropicApiKey();
     config['groqApiKey'] = getGroqApiKey();
     config['geminiApiKey'] = getGeminiApiKey();
@@ -64,6 +71,7 @@ export const GET = async (req: Request) => {
     config['customOpenaiApiUrl'] = getCustomOpenaiApiUrl();
     config['customOpenaiApiKey'] = getCustomOpenaiApiKey();
     config['customOpenaiModelName'] = getCustomOpenaiModelName();
+    config['searxngApiUrl'] = getSearxngApiEndpoint();
 
     return Response.json({ ...config }, { status: 200 });
   } catch (err) {
@@ -97,6 +105,10 @@ export const POST = async (req: Request) => {
           API_URL: config.ollamaApiUrl,
           API_KEY: config.ollamaApiKey,
         },
+        OLLAMA_2: {
+          API_URL: config.ollama2ApiUrl,
+          API_KEY: config.ollama2ApiKey,
+        },
         DEEPSEEK: {
           API_KEY: config.deepseekApiKey,
         },
@@ -106,11 +118,17 @@ export const POST = async (req: Request) => {
         LM_STUDIO: {
           API_URL: config.lmStudioApiUrl,
         },
+        ELEVENLABS: {
+          API_KEY: config.elevenLabsApiKey,
+        },
         CUSTOM_OPENAI: {
           API_URL: config.customOpenaiApiUrl,
           API_KEY: config.customOpenaiApiKey,
           MODEL_NAME: config.customOpenaiModelName,
         },
+      },
+      API_ENDPOINTS: {
+        SEARXNG: config.searxngApiUrl,
       },
     };
 

@@ -8,35 +8,37 @@ import {
 } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useChat } from '@/lib/hooks/useChat';
-
-const OptimizationModes = [
-  {
-    key: 'speed',
-    title: 'Speed',
-    description: 'Prioritize speed and get the quickest possible answer.',
-    icon: <Zap size={20} className="text-[#FF9800]" />,
-  },
-  {
-    key: 'balanced',
-    title: 'Balanced',
-    description: 'Find the right balance between speed and accuracy',
-    icon: <Sliders size={20} className="text-[#4CAF50]" />,
-  },
-  {
-    key: 'quality',
-    title: 'Quality (Soon)',
-    description: 'Get the most thorough and accurate answer',
-    icon: (
-      <Star
-        size={16}
-        className="text-[#2196F3] dark:text-[#BBDEFB] fill-[#BBDEFB] dark:fill-[#2196F3]"
-      />
-    ),
-  },
-];
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 const Optimization = () => {
   const { optimizationMode, setOptimizationMode } = useChat();
+  const { t } = useLanguage();
+
+  const OptimizationModes = [
+    {
+      key: 'speed',
+      title: t('optimization.speed'),
+      description: t('optimization.speedDescription'),
+      icon: <Zap size={20} className="text-[#FF9800]" />,
+    },
+    {
+      key: 'balanced',
+      title: t('optimization.balanced'),
+      description: t('optimization.balancedDescription'),
+      icon: <Sliders size={20} className="text-[#4CAF50]" />,
+    },
+    {
+      key: 'quality',
+      title: t('optimization.quality'),
+      description: t('optimization.qualityDescription'),
+      icon: (
+        <Star
+          size={20}
+          className="text-[#2196F3] dark:text-[#BBDEFB] fill-[#BBDEFB] dark:fill-[#2196F3]"
+        />
+      ),
+    },
+  ];
 
   return (
     <Popover className="relative w-full max-w-[15rem] md:max-w-md lg:max-w-lg">
@@ -73,13 +75,11 @@ const Optimization = () => {
               <PopoverButton
                 onClick={() => setOptimizationMode(mode.key)}
                 key={i}
-                disabled={mode.key === 'quality'}
                 className={cn(
                   'p-2 rounded-lg flex flex-col items-start justify-start text-start space-y-1 duration-200 cursor-pointer transition',
                   optimizationMode === mode.key
                     ? 'bg-light-secondary dark:bg-dark-secondary'
                     : 'hover:bg-light-secondary dark:hover:bg-dark-secondary',
-                  mode.key === 'quality' && 'opacity-50 cursor-not-allowed',
                 )}
               >
                 <div className="flex flex-row items-center space-x-1 text-black dark:text-white">

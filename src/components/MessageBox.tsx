@@ -18,9 +18,10 @@ import Rewrite from './MessageActions/Rewrite';
 import MessageSources from './MessageSources';
 import SearchImages from './SearchImages';
 import SearchVideos from './SearchVideos';
-import { useSpeech } from 'react-text-to-speech';
 import ThinkBox from './ThinkBox';
 import { useChat } from '@/lib/hooks/useChat';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useTTS, TTSProvider } from '@/lib/hooks/useTTS';
 
 const ThinkTagProcessor = ({
   children,
@@ -46,10 +47,24 @@ const MessageBox = ({
   isLast: boolean;
 }) => {
   const { loading, messages: history, sendMessage, rewrite } = useChat();
+  const { t } = useLanguage();
 
   const [parsedMessage, setParsedMessage] = useState(message.content);
   const [speechMessage, setSpeechMessage] = useState(message.content);
   const [thinkingEnded, setThinkingEnded] = useState(false);
+
+  // Get TTS provider from localStorage
+  const ttsProvider =
+    (typeof window !== 'undefined'
+      ? (localStorage.getItem('ttsProvider') as TTSProvider)
+      : 'browser') || 'browser';
+
+  const {
+    isPlaying,
+    speak,
+    stop,
+    error: ttsError,
+  } = useTTS({ provider: ttsProvider });
 
   useEffect(() => {
     const citationRegex = /\[([^\]]+)\]/g;
@@ -121,8 +136,6 @@ const MessageBox = ({
     setParsedMessage(processedMessage);
   }, [message.content, message.sources, message.role]);
 
-  const { speechStatus, start, stop } = useSpeech({ text: speechMessage });
-
   const markdownOverrides: MarkdownToJSX.Options = {
     overrides: {
       think: {
@@ -161,7 +174,7 @@ const MessageBox = ({
                 <div className="flex flex-row items-center space-x-2">
                   <BookCopy className="text-black dark:text-white" size={20} />
                   <h3 className="text-black dark:text-white font-medium text-xl">
-                    Sources
+                    {t('chat.sources')}
                   </h3>
                 </div>
                 <MessageSources sources={message.sources} />
@@ -177,7 +190,7 @@ const MessageBox = ({
                   size={20}
                 />
                 <h3 className="text-black dark:text-white font-medium text-xl">
-                  Answer
+                  {t('chat.answer')}
                 </h3>
               </div>
 
@@ -202,15 +215,16 @@ const MessageBox = ({
                     <Copy initialMessage={message.content} message={message} />
                     <button
                       onClick={() => {
-                        if (speechStatus === 'started') {
+                        if (isPlaying) {
                           stop();
                         } else {
-                          start();
+                          speak(speechMessage).catch(console.error);
                         }
                       }}
                       className="p-2 text-black/70 dark:text-white/70 rounded-xl hover:bg-light-secondary dark:hover:bg-dark-secondary transition duration-200 hover:text-black dark:hover:text-white"
+                      title={ttsError || undefined}
                     >
-                      {speechStatus === 'started' ? (
+                      {isPlaying ? (
                         <StopCircle size={18} />
                       ) : (
                         <Volume2 size={18} />
@@ -229,7 +243,9 @@ const MessageBox = ({
                     <div className="flex flex-col space-y-3 text-black dark:text-white">
                       <div className="flex flex-row items-center space-x-2 mt-4">
                         <Layers3 />
-                        <h3 className="text-xl font-medium">Related</h3>
+                        <h3 className="text-xl font-medium">
+                          {t('chat.related')}
+                        </h3>
                       </div>
                       <div className="flex flex-col space-y-3">
                         {message.suggestions.map((suggestion, i) => (

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface Discover {
   title: string;
@@ -13,30 +14,36 @@ interface Discover {
   thumbnail: string;
 }
 
-const topics: { key: string; display: string }[] = [
+const getTopics = (t: (key: string) => string) => [
   {
-    display: 'Tech & Science',
+    display: t('discover.technology'),
     key: 'tech',
   },
   {
-    display: 'Finance',
+    display: t('discover.business'),
     key: 'finance',
   },
   {
-    display: 'Art & Culture',
-    key: 'art',
+    display: t('discover.entertainment'),
+    key: 'entertainment',
   },
   {
-    display: 'Sports',
+    display: t('discover.sports'),
     key: 'sports',
   },
   {
-    display: 'Entertainment',
-    key: 'entertainment',
+    display: t('discover.games'),
+    key: 'games',
+  },
+  {
+    display: t('discover.health'),
+    key: 'health',
   },
 ];
 
 const Page = () => {
+  const { t, language } = useLanguage();
+  const topics = getTopics(t);
   const [discover, setDiscover] = useState<Discover[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTopic, setActiveTopic] = useState<string>(topics[0].key);
@@ -44,25 +51,34 @@ const Page = () => {
   const fetchArticles = async (topic: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/discover?topic=${topic}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      const res = await fetch(
+        `/api/discover?topic=${topic}&language=${language}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         },
-      });
+      );
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (
+        !res.ok &&
+        data.message !==
+          'Search service unavailable. Please check Searxng configuration.'
+      ) {
         throw new Error(data.message);
       }
 
-      data.blogs = data.blogs.filter((blog: Discover) => blog.thumbnail);
+      // Filter blogs with thumbnails if any exist
+      const blogs = data.blogs || [];
+      const filteredBlogs = blogs.filter((blog: Discover) => blog.thumbnail);
 
-      setDiscover(data.blogs);
+      setDiscover(filteredBlogs);
     } catch (err: any) {
       console.error('Error fetching data:', err.message);
-      toast.error('Error fetching data');
+      toast.error(t('errors.errorFetchingData'));
     } finally {
       setLoading(false);
     }
@@ -70,7 +86,7 @@ const Page = () => {
 
   useEffect(() => {
     fetchArticles(activeTopic);
-  }, [activeTopic]);
+  }, [activeTopic, language]);
 
   return (
     <>
@@ -78,7 +94,7 @@ const Page = () => {
         <div className="flex flex-col pt-4">
           <div className="flex items-center">
             <Search />
-            <h1 className="text-3xl font-medium p-2">Discover</h1>
+            <h1 className="text-3xl font-medium p-2">{t('discover.title')}</h1>
           </div>
           <hr className="border-t border-[#2B2C2C] my-4 w-full" />
         </div>
@@ -121,10 +137,17 @@ const Page = () => {
           </div>
         ) : (
           <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-4 pb-28 pt-5 lg:pb-8 w-full justify-items-center lg:justify-items-start">
+            {discover && discover.length === 0 && (
+              <div className="col-span-full text-center py-8">
+                <p className="text-black/70 dark:text-white/70">
+                  {t('discover.noArticles')}
+                </p>
+              </div>
+            )}
             {discover &&
               discover?.map((item, i) => (
                 <Link
-                  href={`/?q=Summary: ${item.url}`}
+                  href={`/?q=${t('discover.summaryPrompt')} ${item.url}`}
                   key={i}
                   className="max-w-sm rounded-lg overflow-hidden bg-light-secondary dark:bg-dark-secondary hover:-translate-y-[1px] transition duration-200"
                   target="_blank"

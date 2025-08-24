@@ -21,6 +21,11 @@ MODEL_NAME = ""
 
 [MODELS.OLLAMA]
 API_URL = "" # Ollama API URL - http://host.docker.internal:11434
+API_KEY = "" # Optional: API Key for Ollama
+
+[MODELS.OLLAMA_2]
+API_URL = "https://ollama.com" # Ollama Turbo API URL (cloud service)
+API_KEY = "" # Required: Ollama Turbo API Key from ollama.com/settings/keys
 
 [MODELS.DEEPSEEK]
 API_KEY = ""
@@ -30,6 +35,9 @@ API_KEY = "" # Required to use AI/ML API chat and embedding models
 
 [MODELS.LM_STUDIO]
 API_URL = "" # LM Studio API URL - http://host.docker.internal:1234
+
+[MODELS.ELEVENLABS]
+API_KEY = "" # ElevenLabs API Key for high-quality Text-to-Speech
 
 [API_ENDPOINTS]
 SEARXNG = "" # SearxNG API URL - http://localhost:32768

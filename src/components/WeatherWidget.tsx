@@ -1,7 +1,9 @@
 import { Cloud, Sun, CloudRain, CloudSnow, Wind } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 const WeatherWidget = () => {
+  const { t, language } = useLanguage();
   const [data, setData] = useState({
     temperature: 0,
     condition: '',
@@ -77,13 +79,14 @@ const WeatherWidget = () => {
           lat: location.latitude,
           lng: location.longitude,
           measureUnit: localStorage.getItem('measureUnit') ?? 'Metric',
+          language: language,
         }),
       });
 
       const data = await res.json();
 
       if (res.status !== 200) {
-        console.error('Error fetching weather data');
+        console.error(t('weather.errorFetching'));
         setLoading(false);
         return;
       }
@@ -100,7 +103,7 @@ const WeatherWidget = () => {
       });
       setLoading(false);
     });
-  }, []);
+  }, [language]);
 
   return (
     <div className="bg-light-secondary dark:bg-dark-secondary rounded-xl border border-light-200 dark:border-dark-200 shadow-sm flex flex-row items-center w-full h-24 min-h-[96px] max-h-[96px] px-3 py-2 gap-3">
@@ -148,8 +151,13 @@ const WeatherWidget = () => {
               {data.condition}
             </span>
             <div className="flex flex-row justify-between w-full mt-auto pt-1 border-t border-light-200 dark:border-dark-200 text-xs text-black/60 dark:text-white/60">
-              <span>Humidity: {data.humidity}%</span>
-              <span>Now</span>
+              <span>
+                {t('weather.humidity').replace(
+                  '{percentage}',
+                  data.humidity.toString(),
+                )}
+              </span>
+              <span>{t('weather.now')}</span>
             </div>
           </div>
         </>

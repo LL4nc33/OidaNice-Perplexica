@@ -6,11 +6,11 @@ services:
     ports:
       - 4000:8080
     networks:
-      - perplexica-network
+      - oidanice-network
     restart: unless-stopped
 
   app:
-    image: itzcrazykns1337/perplexica:main
+    # image: itzcrazykns1337/perplexica:main  # Commented out to use local build
     build:
       context: .
       dockerfile: app.dockerfile
@@ -20,7 +20,7 @@ services:
     ports:
       - 3000:3000
     networks:
-      - perplexica-network
+      - oidanice-network
     volumes:
       - backend-dbstore:/home/perplexica/data
       - uploads:/home/perplexica/uploads
@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
 
 networks:
-  perplexica-network:
+  oidanice-network:
 
 volumes:
   backend-dbstore:

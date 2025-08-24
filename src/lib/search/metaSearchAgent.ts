@@ -60,8 +60,23 @@ class MetaSearchAgent implements MetaSearchAgentType {
     this.config = config;
   }
 
-  private async createSearchRetrieverChain(llm: BaseChatModel) {
-    (llm as unknown as ChatOpenAI).temperature = 0;
+  private async createSearchRetrieverChain(
+    llm: BaseChatModel,
+    optimizationMode?: 'speed' | 'balanced' | 'quality',
+  ) {
+    // Configure LLM parameters based on optimization mode
+    const openaiLlm = llm as unknown as ChatOpenAI;
+
+    if (optimizationMode === 'speed') {
+      openaiLlm.temperature = 0; // Keep deterministic for speed
+      openaiLlm.maxTokens = 100; // Limit tokens for faster generation
+    } else if (optimizationMode === 'quality') {
+      openaiLlm.temperature = 0.1; // Slight creativity for better queries
+      openaiLlm.maxTokens = 200; // More tokens for detailed queries
+    } else {
+      openaiLlm.temperature = 0; // Default balanced
+      openaiLlm.maxTokens = 150; // Balanced token limit
+    }
 
     return RunnableSequence.from([
       PromptTemplate.fromTemplate(this.config.queryGeneratorPrompt),
@@ -205,12 +220,37 @@ class MetaSearchAgent implements MetaSearchAgentType {
         } else {
           question = question.replace(/<think>.*?<\/think>/g, '');
 
-          const res = await searchSearxng(question, {
+          // Optimize search parameters based on mode
+          let searchParams = {
             language: 'en',
             engines: this.config.activeEngines,
-          });
+          };
 
-          const documents = res.results.map(
+          if (optimizationMode === 'speed') {
+            // Speed: Limit engines for faster search
+            searchParams.engines = this.config.activeEngines.slice(0, 2);
+          } else if (optimizationMode === 'quality') {
+            // Quality: Use all available engines for comprehensive results
+            if (searchParams.engines.length === 0) {
+              // If no specific engines, use default comprehensive set
+              searchParams.engines = [];
+            }
+          }
+          // Balanced uses default config
+
+          const res = await searchSearxng(question, searchParams);
+
+          // Limit initial results based on optimization mode
+          let maxResults = res.results.length;
+          if (optimizationMode === 'speed') {
+            maxResults = Math.min(15, res.results.length);
+          } else if (optimizationMode === 'quality') {
+            maxResults = Math.min(50, res.results.length);
+          } else {
+            maxResults = Math.min(30, res.results.length); // balanced
+          }
+
+          const documents = res.results.slice(0, maxResults).map(
             (result) =>
               new Document({
                 pageContent:
@@ -239,6 +279,19 @@ class MetaSearchAgent implements MetaSearchAgentType {
     optimizationMode: 'speed' | 'balanced' | 'quality',
     systemInstructions: string,
   ) {
+    // Configure LLM for answering based on optimization mode
+    const openaiLlm = llm as unknown as ChatOpenAI;
+
+    if (optimizationMode === 'speed') {
+      openaiLlm.temperature = 0.1; // Lower temperature for faster, more focused answers
+      openaiLlm.maxTokens = 800; // Limit response length for speed
+    } else if (optimizationMode === 'quality') {
+      openaiLlm.temperature = 0.3; // Higher temperature for more nuanced answers
+      openaiLlm.maxTokens = 2000; // Allow longer, more detailed responses
+    } else {
+      openaiLlm.temperature = 0.2; // Balanced temperature
+      openaiLlm.maxTokens = 1200; // Balanced response length
+    }
     return RunnableSequence.from([
       RunnableMap.from({
         systemInstructions: () => systemInstructions,
@@ -254,8 +307,10 @@ class MetaSearchAgent implements MetaSearchAgentType {
           let query = input.query;
 
           if (this.config.searchWeb) {
-            const searchRetrieverChain =
-              await this.createSearchRetrieverChain(llm);
+            const searchRetrieverChain = await this.createSearchRetrieverChain(
+              llm,
+              optimizationMode,
+            );
 
             const searchRetrieverResult = await searchRetrieverChain.invoke({
               chat_history: processedHistory,
@@ -336,6 +391,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
       (doc) => doc.pageContent && doc.pageContent.length > 0,
     );
 
+    // Speed mode: Fast but basic analysis
     if (optimizationMode === 'speed' || this.config.rerank === false) {
       if (filesData.length > 0) {
         const [queryEmbedding] = await Promise.all([
@@ -374,10 +430,10 @@ class MetaSearchAgent implements MetaSearchAgentType {
 
         return [
           ...sortedDocs,
-          ...docsWithContent.slice(0, 15 - sortedDocs.length),
+          ...docsWithContent.slice(0, 8 - sortedDocs.length), // Speed: Only 8 total
         ];
       } else {
-        return docsWithContent.slice(0, 15);
+        return docsWithContent.slice(0, 8); // Speed: Only 8 docs
       }
     } else if (optimizationMode === 'balanced') {
       const [docEmbeddings, queryEmbedding] = await Promise.all([
@@ -414,6 +470,46 @@ class MetaSearchAgent implements MetaSearchAgentType {
         .filter((sim) => sim.similarity > (this.config.rerankThreshold ?? 0.3))
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, 15)
+        .map((sim) => docsWithContent[sim.index]);
+
+      return sortedDocs;
+    } else if (optimizationMode === 'quality') {
+      // Quality mode: More comprehensive analysis with lower threshold
+      const [docEmbeddings, queryEmbedding] = await Promise.all([
+        embeddings.embedDocuments(
+          docsWithContent.map((doc) => doc.pageContent),
+        ),
+        embeddings.embedQuery(query),
+      ]);
+
+      docsWithContent.push(
+        ...filesData.map((fileData) => {
+          return new Document({
+            pageContent: fileData.content,
+            metadata: {
+              title: fileData.fileName,
+              url: `File`,
+            },
+          });
+        }),
+      );
+
+      docEmbeddings.push(...filesData.map((fileData) => fileData.embeddings));
+
+      const similarity = docEmbeddings.map((docEmbedding, i) => {
+        const sim = computeSimilarity(queryEmbedding, docEmbedding);
+
+        return {
+          index: i,
+          similarity: sim,
+        };
+      });
+
+      // Quality mode: Lower threshold and more results for better quality
+      const sortedDocs = similarity
+        .filter((sim) => sim.similarity > (this.config.rerankThreshold ?? 0.15)) // Lower threshold
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, 25) // More results for quality
         .map((sim) => docsWithContent[sim.index]);
 
       return sortedDocs;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface Article {
   title: string;
@@ -8,22 +9,38 @@ interface Article {
 }
 
 const NewsArticleWidget = () => {
+  const { t } = useLanguage();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch('/api/discover?mode=preview')
-      .then((res) => res.json())
-      .then((data) => {
-        const articles = (data.blogs || []).filter((a: Article) => a.thumbnail);
-        setArticle(articles[Math.floor(Math.random() * articles.length)]);
+    const savedLanguage = localStorage.getItem('language') || 'en';
+
+    const loadNews = async () => {
+      try {
+        // Load preview article first
+        const previewRes = await fetch(
+          `/api/discover?mode=preview&language=${savedLanguage}`,
+        );
+        const previewData = await previewRes.json();
+        const articles = (previewData.blogs || []).filter(
+          (a: Article) => a.thumbnail,
+        );
+
+        if (articles.length > 0) {
+          setArticle(articles[Math.floor(Math.random() * articles.length)]);
+        }
         setLoading(false);
-      })
-      .catch(() => {
+
+        // Preloading is now handled by NewsPreloader component globally
+      } catch (error) {
         setError(true);
         setLoading(false);
-      });
+      }
+    };
+
+    loadNews();
   }, []);
 
   return (
@@ -39,10 +56,12 @@ const NewsArticleWidget = () => {
           </div>
         </>
       ) : error ? (
-        <div className="w-full text-xs text-red-400">Could not load news.</div>
+        <div className="w-full text-xs text-red-400">
+          {t('errors.couldNotLoadNews')}
+        </div>
       ) : article ? (
         <a
-          href={`/?q=Summary: ${article.url}`}
+          href={`/?q=${t('discover.summaryPrompt')} ${article.url}`}
           className="flex flex-row items-center w-full h-full group"
         >
           <img

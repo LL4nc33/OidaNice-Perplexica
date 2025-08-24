@@ -5,6 +5,7 @@ import { cn, formatTimeDifference } from '@/lib/utils';
 import { BookOpenText, ClockIcon, Delete, ScanEye } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export interface Chat {
   id: string;
@@ -14,6 +15,7 @@ export interface Chat {
 }
 
 const Page = () => {
+  const { t } = useLanguage();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +32,7 @@ const Page = () => {
 
       const data = await res.json();
 
-      setChats(data.chats);
+      setChats(data.chats || []);
       setLoading(false);
     };
 
@@ -61,14 +63,14 @@ const Page = () => {
       <div className="flex flex-col pt-4">
         <div className="flex items-center">
           <BookOpenText />
-          <h1 className="text-3xl font-medium p-2">Library</h1>
+          <h1 className="text-3xl font-medium p-2">{t('library.title')}</h1>
         </div>
         <hr className="border-t border-[#2B2C2C] my-4 w-full" />
       </div>
       {chats.length === 0 && (
         <div className="flex flex-row items-center justify-center min-h-screen">
           <p className="text-black/70 dark:text-white/70 text-sm">
-            No chats found.
+            {t('library.noChats')}
           </p>
         </div>
       )}
@@ -94,7 +96,10 @@ const Page = () => {
                 <div className="flex flex-row items-center space-x-1 lg:space-x-1.5 text-black/70 dark:text-white/70">
                   <ClockIcon size={15} />
                   <p className="text-xs">
-                    {formatTimeDifference(new Date(), chat.createdAt)} Ago
+                    {t('library.timeAgo').replace(
+                      '{time}',
+                      formatTimeDifference(new Date(), chat.createdAt, t),
+                    )}
                   </p>
                 </div>
                 <DeleteChat

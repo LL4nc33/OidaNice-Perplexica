@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Document } from '@langchain/core/documents';
 import { getSuggestions } from '../actions';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type ChatContext = {
   messages: Message[];
@@ -96,7 +97,7 @@ const checkConfig = async (
         const chatModelProvidersKeys = Object.keys(chatModelProviders);
 
         if (!chatModelProviders || chatModelProvidersKeys.length === 0) {
-          return toast.error('No chat models available');
+          return toast.error('No models available');
         } else {
           chatModelProvider =
             chatModelProvidersKeys.find(
@@ -110,7 +111,7 @@ const checkConfig = async (
           Object.keys(chatModelProviders[chatModelProvider]).length === 0
         ) {
           toast.error(
-            "Looks like you haven't configured any chat model providers. Please configure them from the settings page or the config file.",
+            'No models available for this provider, please check backend configuration',
           );
           return setHasError(true);
         }
@@ -125,7 +126,7 @@ const checkConfig = async (
           !embeddingModelProviders ||
           Object.keys(embeddingModelProviders).length === 0
         )
-          return toast.error('No embedding models available');
+          return toast.error('No models available');
 
         embeddingModelProvider = Object.keys(embeddingModelProviders)[0];
         embeddingModel = Object.keys(
@@ -164,7 +165,7 @@ const checkConfig = async (
           Object.keys(chatModelProviders[chatModelProvider]).length === 0
         ) {
           toast.error(
-            "Looks like you haven't configured any chat model providers. Please configure them from the settings page or the config file.",
+            'No models available for this provider, please check backend configuration',
           );
           return setHasError(true);
         }
@@ -304,6 +305,7 @@ export const ChatProvider = ({
   children: React.ReactNode;
   id?: string;
 }) => {
+  const { t, language } = useLanguage();
   const searchParams = useSearchParams();
   const initialMessage = searchParams.get('q');
 
@@ -413,7 +415,7 @@ export const ChatProvider = ({
   useEffect(() => {
     if (isReady && initialMessage && isConfigReady) {
       if (!isConfigReady) {
-        toast.error('Cannot send message before the configuration is ready');
+        toast.error(t('errors.configurationNotReady'));
         return;
       }
       sendMessage(initialMessage);
@@ -535,7 +537,10 @@ export const ChatProvider = ({
           lastMsg.sources.length > 0 &&
           !lastMsg.suggestions
         ) {
-          const suggestions = await getSuggestions(messagesRef.current);
+          const suggestions = await getSuggestions(
+            messagesRef.current,
+            language,
+          );
           setMessages((prev) =>
             prev.map((msg) => {
               if (msg.messageId === lastMsg.messageId) {

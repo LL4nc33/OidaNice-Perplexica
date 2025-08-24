@@ -17,6 +17,11 @@ import {
   loadOllamaEmbeddingModels,
   PROVIDER_INFO as OllamaInfo,
 } from './ollama';
+import {
+  loadOllamaChatModels as loadOllama2ChatModels,
+  loadOllamaEmbeddingModels as loadOllama2EmbeddingModels,
+  PROVIDER_INFO as Ollama2Info,
+} from './ollama2';
 import { loadGroqChatModels, PROVIDER_INFO as GroqInfo } from './groq';
 import {
   loadAnthropicChatModels,
@@ -49,6 +54,7 @@ import {
 export const PROVIDER_METADATA = {
   openai: OpenAIInfo,
   ollama: OllamaInfo,
+  ollama_turbo: Ollama2Info,
   groq: GroqInfo,
   anthropic: AnthropicInfo,
   gemini: GeminiInfo,
@@ -78,6 +84,7 @@ export const chatModelProviders: Record<
 > = {
   openai: loadOpenAIChatModels,
   ollama: loadOllamaChatModels,
+  ollama_turbo: loadOllama2ChatModels,
   groq: loadGroqChatModels,
   anthropic: loadAnthropicChatModels,
   gemini: loadGeminiChatModels,
@@ -92,6 +99,7 @@ export const embeddingModelProviders: Record<
 > = {
   openai: loadOpenAIEmbeddingModels,
   ollama: loadOllamaEmbeddingModels,
+  ollama_turbo: loadOllama2EmbeddingModels,
   gemini: loadGeminiEmbeddingModels,
   transformers: loadTransformersEmbeddingsModels,
   aimlapi: loadAimlApiEmbeddingModels,

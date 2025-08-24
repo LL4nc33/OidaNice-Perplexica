@@ -22,6 +22,7 @@ dist/
 
 # Config files
 config.toml
+"config - Kopie.toml"
 
 # Log files
 logs/
@@ -30,8 +31,31 @@ logs/
 # Testing
 /coverage/
 
-# Miscellaneous
+# Cache files
+.next/cache/
+.next/server/
+.next/standalone/
+.next/static/
+tsconfig.tsbuildinfo
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Db
@@ -39,3 +63,16 @@ db.sqlite
 /searxng
 
 certificates
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Editor backups
+*~
+*.swp
+*.swo
+.vscode/settings.json
+
+# Claude Code settings
+.claude/

@@ -33,6 +33,10 @@ interface Config {
       API_URL: string;
       API_KEY: string;
     };
+    OLLAMA_2: {
+      API_URL: string;
+      API_KEY: string;
+    };
     DEEPSEEK: {
       API_KEY: string;
     };
@@ -46,6 +50,9 @@ interface Config {
       API_URL: string;
       API_KEY: string;
       MODEL_NAME: string;
+    };
+    ELEVENLABS: {
+      API_KEY: string;
     };
   };
   API_ENDPOINTS: {
@@ -82,12 +89,35 @@ export const getAnthropicApiKey = () => loadConfig().MODELS.ANTHROPIC.API_KEY;
 
 export const getGeminiApiKey = () => loadConfig().MODELS.GEMINI.API_KEY;
 
-export const getSearxngApiEndpoint = () =>
-  process.env.SEARXNG_API_URL || loadConfig().API_ENDPOINTS.SEARXNG;
+export const getSearxngApiEndpoint = () => {
+  // Check environment variable first
+  if (process.env.SEARXNG_API_URL) {
+    return process.env.SEARXNG_API_URL;
+  }
+
+  // Server-side: load from config
+  if (typeof window === 'undefined') {
+    const config = loadConfig();
+    return config.API_ENDPOINTS?.SEARXNG || 'http://localhost:4000';
+  }
+
+  // Client-side: this shouldn't be called from client
+  return 'http://localhost:4000';
+};
 
 export const getOllamaApiEndpoint = () => loadConfig().MODELS.OLLAMA.API_URL;
 
 export const getOllamaApiKey = () => loadConfig().MODELS.OLLAMA.API_KEY;
+
+export const getOllama2ApiEndpoint = () => {
+  const config = loadConfig();
+  return config?.MODELS?.OLLAMA_2?.API_URL || 'https://ollama.com';
+};
+
+export const getOllama2ApiKey = () => {
+  const config = loadConfig();
+  return config?.MODELS?.OLLAMA_2?.API_KEY || '';
+};
 
 export const getDeepseekApiKey = () => loadConfig().MODELS.DEEPSEEK.API_KEY;
 
@@ -104,6 +134,8 @@ export const getCustomOpenaiModelName = () =>
 
 export const getLMStudioApiEndpoint = () =>
   loadConfig().MODELS.LM_STUDIO.API_URL;
+
+export const getElevenLabsApiKey = () => loadConfig().MODELS.ELEVENLABS.API_KEY;
 
 const mergeConfigs = (current: any, update: any): any => {
   if (update === null || update === undefined) {

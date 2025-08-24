@@ -11,6 +11,7 @@ import {
 } from '@headlessui/react';
 import jsPDF from 'jspdf';
 import { useChat } from '@/lib/hooks/useChat';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 const downloadFile = (filename: string, content: string, type: string) => {
   const blob = new Blob([content], { type });
@@ -26,18 +27,18 @@ const downloadFile = (filename: string, content: string, type: string) => {
   }, 0);
 };
 
-const exportAsMarkdown = (messages: Message[], title: string) => {
+const exportAsMarkdown = (messages: Message[], title: string, t: any) => {
   const date = new Date(messages[0]?.createdAt || Date.now()).toLocaleString();
-  let md = `# 💬 Chat Export: ${title}\n\n`;
-  md += `*Exported on: ${date}*\n\n---\n`;
+  let md = `# 💬 ${t('navbar.chatExport')}: ${title}\n\n`;
+  md += `*${t('navbar.exportedOn')}: ${date}*\n\n---\n`;
   messages.forEach((msg, idx) => {
     md += `\n---\n`;
-    md += `**${msg.role === 'user' ? '🧑 User' : '🤖 Assistant'}**  
+    md += `**${msg.role === 'user' ? `🧑 ${t('navbar.user')}` : `🤖 ${t('navbar.assistant')}`}**  
 `;
     md += `*${new Date(msg.createdAt).toLocaleString()}*\n\n`;
     md += `> ${msg.content.replace(/\n/g, '\n> ')}\n`;
     if (msg.sources && msg.sources.length > 0) {
-      md += `\n**Citations:**\n`;
+      md += `\n**${t('navbar.citations')}:**\n`;
       msg.sources.forEach((src: any, i: number) => {
         const url = src.metadata?.url || '';
         md += `- [${i + 1}] [${url}](${url})\n`;
@@ -48,17 +49,17 @@ const exportAsMarkdown = (messages: Message[], title: string) => {
   downloadFile(`${title || 'chat'}.md`, md, 'text/markdown');
 };
 
-const exportAsPDF = (messages: Message[], title: string) => {
+const exportAsPDF = (messages: Message[], title: string, t: any) => {
   const doc = new jsPDF();
   const date = new Date(messages[0]?.createdAt || Date.now()).toLocaleString();
   let y = 15;
   const pageHeight = doc.internal.pageSize.height;
   doc.setFontSize(18);
-  doc.text(`Chat Export: ${title}`, 10, y);
+  doc.text(`${t('navbar.chatExport')}: ${title}`, 10, y);
   y += 8;
   doc.setFontSize(11);
   doc.setTextColor(100);
-  doc.text(`Exported on: ${date}`, 10, y);
+  doc.text(`${t('navbar.exportedOn')}: ${date}`, 10, y);
   y += 8;
   doc.setDrawColor(200);
   doc.line(10, y, 200, y);
@@ -70,7 +71,11 @@ const exportAsPDF = (messages: Message[], title: string) => {
       y = 15;
     }
     doc.setFont('helvetica', 'bold');
-    doc.text(`${msg.role === 'user' ? 'User' : 'Assistant'}`, 10, y);
+    doc.text(
+      `${msg.role === 'user' ? t('navbar.user') : t('navbar.assistant')}`,
+      10,
+      y,
+    );
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(120);
@@ -94,7 +99,7 @@ const exportAsPDF = (messages: Message[], title: string) => {
         doc.addPage();
         y = 15;
       }
-      doc.text('Citations:', 12, y);
+      doc.text(`${t('navbar.citations')}:`, 12, y);
       y += 5;
       msg.sources.forEach((src: any, i: number) => {
         const url = src.metadata?.url || '';
@@ -124,6 +129,7 @@ const Navbar = () => {
   const [timeAgo, setTimeAgo] = useState<string>('');
 
   const { messages, chatId } = useChat();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -135,6 +141,7 @@ const Navbar = () => {
       const newTimeAgo = formatTimeDifference(
         new Date(),
         messages[0].createdAt,
+        t,
       );
       setTimeAgo(newTimeAgo);
     }
@@ -146,6 +153,7 @@ const Navbar = () => {
         const newTimeAgo = formatTimeDifference(
           new Date(),
           messages[0].createdAt,
+          t,
         );
         setTimeAgo(newTimeAgo);
       }
@@ -165,7 +173,9 @@ const Navbar = () => {
       </a>
       <div className="hidden lg:flex flex-row items-center justify-center space-x-2">
         <Clock size={17} />
-        <p className="text-xs">{timeAgo} ago</p>
+        <p className="text-xs">
+          {t('navbar.timeAgo').replace('{time}', timeAgo)}
+        </p>
       </div>
       <p className="hidden lg:flex">{title}</p>
 
@@ -187,17 +197,17 @@ const Navbar = () => {
               <div className="flex flex-col py-3 px-3 gap-2">
                 <button
                   className="flex items-center gap-2 px-4 py-2 text-left hover:bg-light-secondary dark:hover:bg-dark-secondary transition-colors text-black dark:text-white rounded-lg font-medium"
-                  onClick={() => exportAsMarkdown(messages, title || '')}
+                  onClick={() => exportAsMarkdown(messages, title || '', t)}
                 >
                   <FileText size={17} className="text-[#24A0ED]" />
-                  Export as Markdown
+                  {t('navbar.exportAsMarkdown')}
                 </button>
                 <button
                   className="flex items-center gap-2 px-4 py-2 text-left hover:bg-light-secondary dark:hover:bg-dark-secondary transition-colors text-black dark:text-white rounded-lg font-medium"
-                  onClick={() => exportAsPDF(messages, title || '')}
+                  onClick={() => exportAsPDF(messages, title || '', t)}
                 >
                   <FileDown size={17} className="text-[#24A0ED]" />
-                  Export as PDF
+                  {t('navbar.exportAsPDF')}
                 </button>
               </div>
             </PopoverPanel>

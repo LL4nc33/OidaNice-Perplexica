@@ -16,48 +16,50 @@ import {
 import { SiReddit, SiYoutube } from '@icons-pack/react-simple-icons';
 import { Fragment } from 'react';
 import { useChat } from '@/lib/hooks/useChat';
-
-const focusModes = [
-  {
-    key: 'webSearch',
-    title: 'All',
-    description: 'Searches across all of the internet',
-    icon: <Globe size={20} />,
-  },
-  {
-    key: 'academicSearch',
-    title: 'Academic',
-    description: 'Search in published academic papers',
-    icon: <SwatchBook size={20} />,
-  },
-  {
-    key: 'writingAssistant',
-    title: 'Writing',
-    description: 'Chat without searching the web',
-    icon: <Pencil size={16} />,
-  },
-  {
-    key: 'wolframAlphaSearch',
-    title: 'Wolfram Alpha',
-    description: 'Computational knowledge engine',
-    icon: <BadgePercent size={20} />,
-  },
-  {
-    key: 'youtubeSearch',
-    title: 'Youtube',
-    description: 'Search and watch videos',
-    icon: <SiYoutube className="h-5 w-auto mr-0.5" />,
-  },
-  {
-    key: 'redditSearch',
-    title: 'Reddit',
-    description: 'Search for discussions and opinions',
-    icon: <SiReddit className="h-5 w-auto mr-0.5" />,
-  },
-];
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 const Focus = () => {
   const { focusMode, setFocusMode } = useChat();
+  const { t } = useLanguage();
+
+  const focusModes = [
+    {
+      key: 'webSearch',
+      title: t('focus.all'),
+      description: t('focus.allDescription'),
+      icon: <Globe size={20} />,
+    },
+    {
+      key: 'academicSearch',
+      title: t('focus.academic'),
+      description: t('focus.academicDescription'),
+      icon: <SwatchBook size={20} />,
+    },
+    {
+      key: 'writingAssistant',
+      title: t('focus.writing'),
+      description: t('focus.writingDescription'),
+      icon: <Pencil size={16} />,
+    },
+    {
+      key: 'wolframAlphaSearch',
+      title: t('focus.wolframAlpha'),
+      description: t('focus.wolframAlphaDescription'),
+      icon: <BadgePercent size={20} />,
+    },
+    {
+      key: 'youtubeSearch',
+      title: t('focus.youtube'),
+      description: t('focus.youtubeDescription'),
+      icon: <SiYoutube className="h-5 w-auto mr-0.5" />,
+    },
+    {
+      key: 'redditSearch',
+      title: t('focus.reddit'),
+      description: t('focus.redditDescription'),
+      icon: <SiReddit className="h-5 w-auto mr-0.5" />,
+    },
+  ];
 
   return (
     <Popover className="relative w-full max-w-[15rem] md:max-w-md lg:max-w-lg mt-[6.5px]">
@@ -76,7 +78,9 @@ const Focus = () => {
         ) : (
           <div className="flex flex-row items-center space-x-1">
             <ScanEye size={20} />
-            <p className="text-xs font-medium hidden lg:block">Focus</p>
+            <p className="text-xs font-medium hidden lg:block">
+              {t('focus.focus')}
+            </p>
           </div>
         )}
       </PopoverButton>
