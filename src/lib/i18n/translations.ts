@@ -48,6 +48,8 @@ export const translations = {
       elevenLabsVoiceDesc: 'Select your preferred voice for text-to-speech',
       elevenLabsModel: 'ElevenLabs Model',
       elevenLabsModelDesc: 'Choose between quality and speed',
+      loadingModels: 'Loading models...',
+      modelsError: 'Error loading models',
       searchSettings: 'Search Settings',
       searxngUrl: 'Searxng URL',
       searxngUrlDesc:
@@ -245,6 +247,8 @@ export const translations = {
       elevenLabsVoiceDesc: 'Wähle deine bevorzugte Stimme für Text-zu-Sprache',
       elevenLabsModel: 'ElevenLabs Modell',
       elevenLabsModelDesc: 'Wähle zwischen Qualität und Geschwindigkeit',
+      loadingModels: 'Modelle werden geladen...',
+      modelsError: 'Fehler beim Laden der Modelle',
       searchSettings: 'Sucheinstellungen',
       searxngUrl: 'Searxng URL',
       searxngUrlDesc:

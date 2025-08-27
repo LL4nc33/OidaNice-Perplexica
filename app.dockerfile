@@ -32,4 +32,4 @@ RUN mkdir /home/perplexica/uploads
 
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
-CMD ["./entrypoint.sh"]
+ENTRYPOINT ["/home/perplexica/entrypoint.sh"]

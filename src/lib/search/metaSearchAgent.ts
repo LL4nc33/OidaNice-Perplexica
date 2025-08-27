@@ -65,6 +65,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
     optimizationMode?: 'speed' | 'balanced' | 'quality',
   ) {
     // Configure LLM parameters based on optimization mode
+    console.log('🔧 Search Optimization Mode:', optimizationMode);
     const openaiLlm = llm as unknown as ChatOpenAI;
 
     if (optimizationMode === 'speed') {
@@ -280,6 +281,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
     systemInstructions: string,
   ) {
     // Configure LLM for answering based on optimization mode
+    console.log('📝 Answer Optimization Mode:', optimizationMode);
     const openaiLlm = llm as unknown as ChatOpenAI;
 
     if (optimizationMode === 'speed') {
@@ -287,10 +289,10 @@ class MetaSearchAgent implements MetaSearchAgentType {
       openaiLlm.maxTokens = 800; // Limit response length for speed
     } else if (optimizationMode === 'quality') {
       openaiLlm.temperature = 0.3; // Higher temperature for more nuanced answers
-      openaiLlm.maxTokens = 2000; // Allow longer, more detailed responses
+      openaiLlm.maxTokens = 2400; // Allow longer, more detailed responses
     } else {
       openaiLlm.temperature = 0.2; // Balanced temperature
-      openaiLlm.maxTokens = 1200; // Balanced response length
+      openaiLlm.maxTokens = 1600; // Balanced response length
     }
     return RunnableSequence.from([
       RunnableMap.from({

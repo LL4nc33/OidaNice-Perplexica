@@ -12,7 +12,7 @@
 - [Installation](#installation)
   - [Erste Schritte mit Docker (Empfohlen)](#erste-schritte-mit-docker-empfohlen)
   - [Installation ohne Docker](#installation-ohne-docker)
-  - [Ollama Connection Errors](#ollama-connection-errors)
+  - [Troubleshooting](#troubleshooting)
 - [Als Search Engine verwenden](#als-search-engine-verwenden)
 - [Perplexica's API verwenden](#perplexicas-api-verwenden)
 - [Perplexica im Netzwerk verfügbar machen](#perplexica-im-netzwerk-verfügbar-machen)
@@ -100,13 +100,27 @@ Es gibt hauptsächlich 2 Wege, Perplexica zu installieren - mit Docker, ohne Doc
 
    - `SIMILARITY_MEASURE`: Das zu verwendende Similarity Measure (Das ist standardmäßig ausgefüllt; du kannst es so lassen, wenn du dir nicht sicher bist.)
 
-5. Stelle sicher, dass du im Directory mit der `docker-compose.yaml` Datei bist und führe aus:
+5. **Lokaler Build:** Stelle sicher, dass du im Directory mit der `docker-compose.yaml` Datei bist und führe aus:
 
    ```bash
    docker compose up -d
    ```
 
-6. Warte ein paar Minuten, bis das Setup abgeschlossen ist. Du kannst auf Perplexica unter http://localhost:3000 in deinem Web Browser zugreifen.
+6. **Alternative: Fertiges Docker Image verwenden:** Du kannst auch das vorgefertigte Docker Image verwenden:
+
+   ```bash
+   docker pull ll4nc33/oidanice-perplexica:devtest
+   ```
+
+   Dann passe die `docker-compose.yaml` an:
+   ```yaml
+   services:
+     app:
+       image: ll4nc33/oidanice-perplexica:devtest
+       # Entferne oder kommentiere die build: Sektion aus
+   ```
+
+7. Warte ein paar Minuten, bis das Setup abgeschlossen ist. Du kannst auf Perplexica unter http://localhost:3000 in deinem Web Browser zugreifen.
 
 **Hinweis**: Nach dem Build der Container kannst du Perplexica direkt von Docker starten, ohne ein Terminal öffnen zu müssen.
 
@@ -122,7 +136,43 @@ Es gibt hauptsächlich 2 Wege, Perplexica zu installieren - mit Docker, ohne Doc
 
 Siehe die [Installation Documentation](https://github.com/ItzCrazyKns/Perplexica/tree/master/docs/installation) des Original-Projekts für weitere Informationen wie Updates, etc.
 
-### Ollama Connection Errors
+### Troubleshooting
+
+#### Docker Container Startup Probleme
+
+**Problem:** `exec: ./entrypoint.sh: not found` oder ähnliche Container Startup Fehler
+
+**Lösung:** Dieses Problem tritt häufig auf Windows-Systemen auf, wenn Dateien mit CRLF Line-Endings erstellt wurden:
+
+1. **Line Endings korrigieren:**
+   ```bash
+   # Für Git Bash/WSL auf Windows
+   dos2unix entrypoint.sh
+   
+   # Alternativ in Git global für alle Dateien
+   git config --global core.autocrlf input
+   ```
+
+2. **Image neu bauen:**
+   ```bash
+   docker build -t your-image-name --no-cache .
+   docker compose down && docker compose up -d
+   ```
+
+3. **Vorgefertigtes Image verwenden:**
+   Falls lokales Bauen weiterhin Probleme verursacht, verwende das vorgefertigte Image:
+   ```bash
+   docker pull ll4nc33/oidanice-perplexica:devtest
+   ```
+
+**Problem:** `push access denied` oder Docker Hub Authentication Fehler
+
+**Lösung:** 
+1. Erstelle einen Personal Access Token bei Docker Hub mit Read/Write/Delete Permissions
+2. Login mit Token: `docker login -u your-username`
+3. Verwende den Token als Passwort
+
+#### Ollama Connection Errors
 
 Wenn du einen Ollama Connection Error erhältst, liegt es wahrscheinlich daran, dass das Backend sich nicht mit Ollama's API verbinden kann. Um dieses Problem zu beheben, kannst du:
 
