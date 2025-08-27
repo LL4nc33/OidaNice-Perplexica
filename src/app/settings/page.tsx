@@ -9,10 +9,7 @@ import { ImagesIcon, VideoIcon } from 'lucide-react';
 import Link from 'next/link';
 import { PROVIDER_METADATA } from '@/lib/providers';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
-import {
-  elevenLabsModels,
-  getRecommendedModel,
-} from '@/lib/config/elevenLabsModels';
+import { useTTSModels } from '@/lib/hooks/useTTSModels';
 import { shouldMaskInput, maskInputValue } from '@/lib/utils/maskSensitiveData';
 
 interface ElevenLabsVoice {
@@ -224,9 +221,14 @@ const Page = () => {
   const [elevenLabsVoice, setElevenLabsVoice] = useState<string>(
     'pNInz6obpgDQGcFmaJgB',
   );
-  const [elevenLabsModel, setElevenLabsModel] = useState<string>(
-    'eleven_multilingual_v2',
-  );
+  // Use the dynamic TTS models hook
+  const { 
+    models: elevenLabsModels, 
+    selectedModel: elevenLabsModel, 
+    setSelectedModel: setElevenLabsModel,
+    loading: modelsLoading,
+    error: modelsError
+  } = useTTSModels();
   const [elevenLabsVoices, setElevenLabsVoices] = useState<ElevenLabsVoice[]>(
     [],
   );
@@ -306,9 +308,7 @@ const Page = () => {
         localStorage.getItem('elevenLabsVoice') || 'pNInz6obpgDQGcFmaJgB',
       );
 
-      setElevenLabsModel(
-        localStorage.getItem('elevenLabsModel') || getRecommendedModel('de'),
-      );
+      // ElevenLabs model is now handled by useTTSModels hook
 
       setIsLoading(false);
     };
@@ -650,17 +650,29 @@ const Page = () => {
                   <p className="text-black/50 dark:text-white/50 text-xs">
                     {t('settings.elevenLabsModelDesc')}
                   </p>
-                  <Select
-                    value={elevenLabsModel}
-                    onChange={(e) => {
-                      setElevenLabsModel(e.target.value);
-                      localStorage.setItem('elevenLabsModel', e.target.value);
-                    }}
-                    options={elevenLabsModels.map((model) => ({
-                      label: `${model.name}${model.recommended ? ' ⭐' : ''} - ${model.description}`,
-                      value: model.id,
-                    }))}
-                  />
+                  {modelsLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="animate-spin h-4 w-4" />
+                      <span className="ml-2 text-sm text-black/70 dark:text-white/70">
+                        {t('settings.loadingModels')}
+                      </span>
+                    </div>
+                  ) : modelsError ? (
+                    <div className="text-red-500 text-sm py-2">
+                      {t('settings.modelsError')}: {modelsError}
+                    </div>
+                  ) : (
+                    <Select
+                      value={elevenLabsModel}
+                      onChange={(e) => {
+                        setElevenLabsModel(e.target.value);
+                      }}
+                      options={elevenLabsModels.map((model) => ({
+                        label: `${model.name}${model.description ? ` - ${model.description}` : ''}`,
+                        value: model.model_id,
+                      }))}
+                    />
+                  )}
                 </div>
               )}
             </SettingsSection>

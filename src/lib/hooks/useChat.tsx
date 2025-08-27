@@ -1,7 +1,7 @@
 'use client';
 
 import { Message } from '@/components/ChatWindow';
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import crypto from 'crypto';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -395,22 +395,7 @@ export const ChatProvider = ({
     }
   }, [isMessagesLoaded, isConfigReady]);
 
-  const rewrite = (messageId: string) => {
-    const index = messages.findIndex((msg) => msg.messageId === messageId);
-
-    if (index === -1) return;
-
-    const message = messages[index - 1];
-
-    setMessages((prev) => {
-      return [...prev.slice(0, messages.length > 2 ? index - 1 : 0)];
-    });
-    setChatHistory((prev) => {
-      return [...prev.slice(0, messages.length > 2 ? index - 1 : 0)];
-    });
-
-    sendMessage(message.content, message.messageId, true);
-  };
+  // Rewrite function will be defined after sendMessage
 
   useEffect(() => {
     if (isReady && initialMessage && isConfigReady) {
@@ -423,7 +408,7 @@ export const ChatProvider = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConfigReady, isReady, initialMessage]);
 
-  const sendMessage: ChatContext['sendMessage'] = async (
+  const sendMessage: ChatContext['sendMessage'] = useCallback(async (
     message,
     messageId,
     rewrite = false,
@@ -611,7 +596,38 @@ export const ChatProvider = ({
         console.warn('Incomplete JSON, waiting for next chunk...');
       }
     }
-  };
+  }, [
+    loading,
+    chatId,
+    focusMode,
+    optimizationMode,
+    chatModelProvider,
+    embeddingModelProvider,
+    fileIds,
+    setLoading,
+    setMessageAppeared,
+    setMessages,
+    setChatHistory,
+    setFileIds,
+    t
+  ]);
+
+  const rewrite = useCallback((messageId: string) => {
+    const index = messages.findIndex((msg) => msg.messageId === messageId);
+
+    if (index === -1) return;
+
+    const message = messages[index - 1];
+
+    setMessages((prev) => {
+      return [...prev.slice(0, messages.length > 2 ? index - 1 : 0)];
+    });
+    setChatHistory((prev) => {
+      return [...prev.slice(0, messages.length > 2 ? index - 1 : 0)];
+    });
+
+    sendMessage(message.content, message.messageId, true);
+  }, [messages, sendMessage, setMessages, setChatHistory]);
 
   return (
     <chatContext.Provider

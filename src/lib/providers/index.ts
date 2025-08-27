@@ -50,11 +50,6 @@ import {
   loadLMStudioEmbeddingsModels,
   PROVIDER_INFO as LMStudioInfo,
 } from './lmstudio';
-import {
-  loadVllmChatModels,
-  loadVllmEmbeddingModels,
-  PROVIDER_INFO as VllmInfo,
-} from './vllm';
 
 export const PROVIDER_METADATA = {
   openai: OpenAIInfo,
@@ -67,7 +62,6 @@ export const PROVIDER_METADATA = {
   deepseek: DeepseekInfo,
   aimlapi: AimlApiInfo,
   lmstudio: LMStudioInfo,
-  vllm: VllmInfo,
   custom_openai: {
     key: 'custom_openai',
     displayName: 'Custom OpenAI',
@@ -97,7 +91,6 @@ export const chatModelProviders: Record<
   deepseek: loadDeepseekChatModels,
   aimlapi: loadAimlApiChatModels,
   lmstudio: loadLMStudioChatModels,
-  vllm: loadVllmChatModels,
 };
 
 export const embeddingModelProviders: Record<
@@ -111,7 +104,6 @@ export const embeddingModelProviders: Record<
   transformers: loadTransformersEmbeddingsModels,
   aimlapi: loadAimlApiEmbeddingModels,
   lmstudio: loadLMStudioEmbeddingsModels,
-  vllm: loadVllmEmbeddingModels,
 };
 
 export const getAvailableChatModelProviders = async () => {
